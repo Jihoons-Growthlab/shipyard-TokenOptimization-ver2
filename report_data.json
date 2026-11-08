@@ -1,0 +1,76 @@
+{
+  "period": {
+    "start": "2026-11-07T08:54:58.909Z",
+    "end": "2026-11-07T10:49:52.808Z"
+  },
+  "sessions": [
+    {
+      "id": "34e639a4",
+      "input_tokens": 28,
+      "output_tokens": 80742,
+      "cache_creation_input_tokens": 158343,
+      "cache_read_input_tokens": 1556638
+    },
+    {
+      "id": "9688fe56",
+      "input_tokens": 166,
+      "output_tokens": 78970,
+      "cache_creation_input_tokens": 194399,
+      "cache_read_input_tokens": 10871892
+    },
+    {
+      "id": "a82a2110",
+      "input_tokens": 122,
+      "output_tokens": 73868,
+      "cache_creation_input_tokens": 185422,
+      "cache_read_input_tokens": 8966006
+    },
+    {
+      "id": "bc24695b",
+      "input_tokens": 4,
+      "output_tokens": 761,
+      "cache_creation_input_tokens": 19571,
+      "cache_read_input_tokens": 71012
+    },
+    {
+      "id": "f5cc4506",
+      "input_tokens": 146,
+      "output_tokens": 100397,
+      "cache_creation_input_tokens": 228056,
+      "cache_read_input_tokens": 11527842
+    },
+    {
+      "id": "ff2344b5",
+      "input_tokens": 98,
+      "output_tokens": 46091,
+      "cache_creation_input_tokens": 127956,
+      "cache_read_input_tokens": 4982071
+    }
+  ],
+  "models": {
+    "claude-opus-5-5": 276
+  },
+  "total": {
+    "input_tokens": 564,
+    "output_tokens": 380829,
+    "cache_creation_input_tokens": 913747,
+    "cache_read_input_tokens": 37975461,
+    "api_calls": 276,
+    "sum_all": 39270601
+  },
+  "prompts": [],
+  "skills": {},
+  "mcp": {
+    "mcp__playwright__browser_run_code_unsafe": 50,
+    "mcp__playwright__browser_handle_dialog": 1
+  },
+  "tools": {
+    "Bash": 177,
+    "Read": 82,
+    "mcp__playwright__browser_run_code_unsafe": 50,
+    "Write": 15,
+    "ToolSearch": 6,
+    "Edit": 1,
+    "mcp__playwright__browser_handle_dialog": 1
+  }
+}

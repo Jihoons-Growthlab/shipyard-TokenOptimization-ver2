@@ -1,0 +1,221 @@
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  display_name TEXT NOT NULL,
+  emp_no TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','disabled')),
+  auth_provider TEXT NOT NULL DEFAULT 'local',
+  last_name TEXT NOT NULL,
+  first_name TEXT NOT NULL,
+  birth_date TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  totp_enabled INTEGER NOT NULL DEFAULT 0,
+  totp_secret TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX ux_users_phone_digits ON users (replace(phone, '-', ''));
+
+CREATE TABLE TB_SYS_CodeGroup (
+  CodeGroup TEXT PRIMARY KEY,
+  CodeGroupName TEXT NOT NULL,
+  Seq INTEGER NOT NULL DEFAULT 0,
+  UseYN INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE TB_SYS_Code (
+  CodeGroup TEXT NOT NULL REFERENCES TB_SYS_CodeGroup (CodeGroup) ON DELETE CASCADE,
+  Code TEXT NOT NULL,
+  CodeName TEXT NOT NULL,
+  Seq INTEGER NOT NULL DEFAULT 0,
+  UseYN INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (CodeGroup, Code)
+);
+
+CREATE TABLE TB_SYS_AuthGroup (
+  AuthCd TEXT PRIMARY KEY,
+  AuthNm TEXT NOT NULL
+);
+
+CREATE TABLE TB_SYS_AuthUser (
+  AuthCd TEXT NOT NULL REFERENCES TB_SYS_AuthGroup (AuthCd) ON DELETE CASCADE,
+  EmpNo TEXT NOT NULL REFERENCES users (emp_no) ON DELETE CASCADE,
+  PRIMARY KEY (AuthCd, EmpNo)
+);
+
+CREATE TABLE TB_SYS_MenuInfo (
+  MenuId TEXT PRIMARY KEY,
+  SystemId TEXT NOT NULL DEFAULT 'SHIP',
+  ParentId TEXT REFERENCES TB_SYS_MenuInfo (MenuId) ON DELETE CASCADE,
+  Title TEXT NOT NULL,
+  TokenUrl TEXT UNIQUE,
+  Seq INTEGER NOT NULL DEFAULT 0,
+  UseYN INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE TB_SYS_AuthMenu (
+  MenuId TEXT NOT NULL REFERENCES TB_SYS_MenuInfo (MenuId) ON DELETE CASCADE,
+  AuthCd TEXT NOT NULL REFERENCES TB_SYS_AuthGroup (AuthCd) ON DELETE CASCADE,
+  AuthGbn TEXT NOT NULL CHECK (AuthGbn IN ('View','Write','Admin')),
+  PRIMARY KEY (MenuId, AuthCd)
+);
+
+CREATE TABLE TB_SYS_LogAccess (
+  LogId INTEGER PRIMARY KEY AUTOINCREMENT,
+  UserId TEXT REFERENCES users (emp_no) ON DELETE SET NULL,
+  LoginDt TEXT NOT NULL,
+  LogoutDt TEXT,
+  IpAddress TEXT,
+  ComputerNm TEXT,
+  WindowAccount TEXT
+);
+CREATE INDEX ix_logaccess_user ON TB_SYS_LogAccess (UserId);
+
+CREATE TABLE TB_SYS_LogMenuAccess (
+  AccIndex INTEGER PRIMARY KEY AUTOINCREMENT,
+  MenuId TEXT NOT NULL REFERENCES TB_SYS_MenuInfo (MenuId) ON DELETE CASCADE,
+  LogId INTEGER NOT NULL REFERENCES TB_SYS_LogAccess (LogId) ON DELETE CASCADE,
+  InDt TEXT NOT NULL
+);
+
+CREATE TABLE TB_MST_Hull (
+  HullNo TEXT PRIMARY KEY,
+  HullNm TEXT NOT NULL,
+  ShipType TEXT,
+  HullStatus TEXT,
+  OwnerNm TEXT,
+  ClassSociety TEXT,
+  LengthM REAL,
+  BreadthM REAL,
+  DepthM REAL,
+  DeadWeight REAL,
+  DockNo TEXT,
+  ContractDt TEXT,
+  DeliveryDt TEXT,
+  Remark TEXT,
+  UseYN INTEGER NOT NULL DEFAULT 1,
+  CreateUserId TEXT,
+  CreateDt TEXT,
+  ModifyUserId TEXT,
+  ModifyDt TEXT
+);
+
+CREATE TABLE TB_MST_HullMilestone (
+  HullNo TEXT NOT NULL REFERENCES TB_MST_Hull (HullNo) ON DELETE CASCADE,
+  MilestoneCd TEXT NOT NULL,
+  PlanDt TEXT,
+  ActualDt TEXT,
+  Remark TEXT,
+  PRIMARY KEY (HullNo, MilestoneCd)
+);
+
+CREATE TABLE TB_MST_Block (
+  BlockId INTEGER PRIMARY KEY AUTOINCREMENT,
+  HullNo TEXT NOT NULL REFERENCES TB_MST_Hull (HullNo) ON DELETE CASCADE,
+  BlockCd TEXT NOT NULL,
+  BlockNm TEXT,
+  BlockType TEXT,
+  ParentBlockId INTEGER REFERENCES TB_MST_Block (BlockId) ON DELETE SET NULL,
+  WeightTon REAL,
+  UseYN INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (HullNo, BlockCd)
+);
+
+CREATE TABLE TB_PRC_Proc (
+  ProcCd TEXT PRIMARY KEY,
+  ProcNm TEXT NOT NULL,
+  ProcGroup TEXT,
+  StdDays INTEGER,
+  Seq INTEGER NOT NULL DEFAULT 0,
+  UseYN INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE TB_PRC_Plan (
+  PlanId INTEGER PRIMARY KEY AUTOINCREMENT,
+  HullNo TEXT NOT NULL REFERENCES TB_MST_Hull (HullNo) ON DELETE CASCADE,
+  BlockId INTEGER REFERENCES TB_MST_Block (BlockId) ON DELETE CASCADE,
+  ProcCd TEXT NOT NULL REFERENCES TB_PRC_Proc (ProcCd),
+  PlanStartDt TEXT NOT NULL,
+  PlanEndDt TEXT NOT NULL,
+  ActualStartDt TEXT,
+  ActualEndDt TEXT,
+  ProgressRate REAL NOT NULL DEFAULT 0 CHECK (ProgressRate BETWEEN 0 AND 100),
+  PlanStatus TEXT NOT NULL DEFAULT 'PLAN',
+  ManagerEmpNo TEXT REFERENCES users (emp_no) ON DELETE SET NULL,
+  Remark TEXT,
+  CreateUserId TEXT,
+  CreateDt TEXT,
+  CHECK (PlanStartDt <= PlanEndDt)
+);
+
+CREATE TABLE TB_PRC_PlanDep (
+  PlanId INTEGER NOT NULL REFERENCES TB_PRC_Plan (PlanId) ON DELETE CASCADE,
+  PredPlanId INTEGER NOT NULL REFERENCES TB_PRC_Plan (PlanId) ON DELETE CASCADE,
+  LagDays INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (PlanId, PredPlanId),
+  CHECK (PlanId <> PredPlanId)
+);
+
+CREATE TABLE TB_PRC_Progress (
+  ProgressId INTEGER PRIMARY KEY AUTOINCREMENT,
+  PlanId INTEGER NOT NULL REFERENCES TB_PRC_Plan (PlanId) ON DELETE CASCADE,
+  WorkDt TEXT NOT NULL,
+  ProgressRate REAL NOT NULL CHECK (ProgressRate BETWEEN 0 AND 100),
+  ManHour REAL,
+  WorkerCnt INTEGER,
+  WorkerEmpNo TEXT REFERENCES users (emp_no) ON DELETE SET NULL,
+  Remark TEXT,
+  CreateDt TEXT,
+  UNIQUE (PlanId, WorkDt)
+);
+
+CREATE TABLE TB_DWG_Drawing (
+  DrawingId INTEGER PRIMARY KEY AUTOINCREMENT,
+  DrawingNo TEXT NOT NULL UNIQUE,
+  DrawingNm TEXT NOT NULL,
+  HullNo TEXT NOT NULL REFERENCES TB_MST_Hull (HullNo) ON DELETE CASCADE,
+  BlockId INTEGER REFERENCES TB_MST_Block (BlockId) ON DELETE SET NULL,
+  Discipline TEXT,
+  DwgStatus TEXT NOT NULL DEFAULT 'DRAFT',
+  CurrentRevNo INTEGER NOT NULL DEFAULT 0,
+  DesignerEmpNo TEXT REFERENCES users (emp_no) ON DELETE SET NULL,
+  UseYN INTEGER NOT NULL DEFAULT 1,
+  CreateUserId TEXT,
+  CreateDt TEXT,
+  ModifyUserId TEXT,
+  ModifyDt TEXT
+);
+
+CREATE TABLE TB_DWG_Revision (
+  DrawingId INTEGER NOT NULL REFERENCES TB_DWG_Drawing (DrawingId) ON DELETE CASCADE,
+  RevNo INTEGER NOT NULL,
+  RevStatus TEXT NOT NULL DEFAULT 'DRAFT',
+  ChangeDesc TEXT,
+  FileId TEXT,
+  FileNm TEXT,
+  AuthorEmpNo TEXT REFERENCES users (emp_no) ON DELETE SET NULL,
+  IssueDt TEXT,
+  CreateDt TEXT,
+  PRIMARY KEY (DrawingId, RevNo)
+);
+
+CREATE TABLE TB_DWG_Approval (
+  ApprovalId INTEGER PRIMARY KEY AUTOINCREMENT,
+  DrawingId INTEGER NOT NULL,
+  RevNo INTEGER NOT NULL,
+  StepNo INTEGER NOT NULL,
+  ApproverEmpNo TEXT REFERENCES users (emp_no) ON DELETE SET NULL,
+  Result TEXT NOT NULL DEFAULT 'WAIT' CHECK (Result IN ('WAIT','APPROVE','REJECT')),
+  Comment TEXT,
+  ActDt TEXT,
+  UNIQUE (DrawingId, RevNo, StepNo),
+  FOREIGN KEY (DrawingId, RevNo) REFERENCES TB_DWG_Revision (DrawingId, RevNo) ON DELETE CASCADE
+);
+
+CREATE TABLE TB_DWG_PlanLink (
+  DrawingId INTEGER NOT NULL REFERENCES TB_DWG_Drawing (DrawingId) ON DELETE CASCADE,
+  PlanId INTEGER NOT NULL REFERENCES TB_PRC_Plan (PlanId) ON DELETE CASCADE,
+  RequiredYN INTEGER NOT NULL DEFAULT 1,
+  NeedDt TEXT,
+  PRIMARY KEY (DrawingId, PlanId)
+);

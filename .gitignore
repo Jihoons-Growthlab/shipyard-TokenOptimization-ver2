@@ -1,0 +1,31 @@
+# 생성물: 커밋과 전체 검색에서 제외한다. 디버깅이 필요하면 해당 파일만 직접 연다.
+node_modules/
+dist/
+.vite/
+.venv/
+__pycache__/
+.pytest_cache/
+coverage/
+*.log
+.DS_Store
+
+.env
+database/*.db
+database/*.db-*
+storage/
+
+.playwright-mcp/
+
+frontend/public/unity/
+unity/ShipyardViewer/Library/
+unity/ShipyardViewer/Temp/
+unity/ShipyardViewer/Obj/
+unity/ShipyardViewer/Logs/
+unity/ShipyardViewer/UserSettings/
+unity/ShipyardViewer/Build/
+unity/ShipyardViewer/Builds/
+unity/ShipyardViewer/*.csproj
+unity/ShipyardViewer/*.sln
+
+# 실험 측정 기록
+.experiment/
